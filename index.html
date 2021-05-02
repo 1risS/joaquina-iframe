@@ -10,7 +10,7 @@
         <script src="GLTFLoader.js"></script>
         <script src="RGBELoader.js"></script>
         <script src="RoughnessMipmapper.js"></script>
-        
+
     </head>
 
 	<body>
@@ -37,7 +37,7 @@
 				new THREE.RGBELoader()
 					.setDataType( THREE.UnsignedByteType )
 					.setPath( 'textures/equirectangular/' )
-					.load( 'colosseum_4k.hdr', function ( texture ) {
+					.load( 'royal_esplanade_1k.hdr', function ( texture ) {
 
 						const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
 
@@ -55,7 +55,7 @@
 						const roughnessMipmapper = new THREE.RoughnessMipmapper( renderer );
 
 						const loader = new THREE.GLTFLoader().setPath( 'models/gltf/' );
-						loader.load( 'hand.gltf', function ( gltf ) {
+						loader.load( 'DamagedHelmet.gltf', function ( gltf ) {
 
 							gltf.scene.traverse( function ( child ) {
 
