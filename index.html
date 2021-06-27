@@ -6,6 +6,7 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
         <link type="text/css" rel="stylesheet" href="main.css">
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous"></script>
+	<script src="https://unpkg.com/postprocessing@6.22.0"></script>
         <script src="OrbitControls.js"></script>
         <script src="GLTFLoader.js"></script>
         <script src="RGBELoader.js"></script>
@@ -83,7 +84,8 @@
 
 				composer = new THREE.EffectComposer( renderer );
 				composer.addPass( renderScene );
-				composer.addPass( bloomPass );
+				//composer.addPass( bloomPass );
+				composer.addPass(new POSTPROCESSING.EffectPass(camera, new POSTPROCESSING.BloomEffect()));
 
 				// Load HDR
 				new THREE.RGBELoader()
@@ -180,7 +182,7 @@
 				const delta = animClock.getDelta();
 				mixer.update(delta);
 
-				composer.render()
+				composer.render(delta)
 
 			}
 
