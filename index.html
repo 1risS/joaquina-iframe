@@ -128,7 +128,10 @@
 								anim.reset().play();
 
 								// Add to selection of selectivebloom
-								bloomEffect.selection.add(heartModel.children[0])
+								heartModel.children.forEach(( obj ) => {
+									bloomEffect.selection.add(obj)
+								}
+								)
 
 								scene.add( model );
 								scene.add( heartModel );
