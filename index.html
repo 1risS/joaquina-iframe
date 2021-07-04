@@ -54,7 +54,7 @@
 				animClock.start()
 
 				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.25, 20 );
-				camera.position.set(0,-1,-2)
+				camera.position.set(0,-1,2)
 
 				scene = new THREE.Scene();
 
@@ -82,14 +82,15 @@
 				bloomPass.strength = 2.5;  // 0.0 - 3.0
 				bloomPass.radius = 0.5;  // 0.0 - 1.0
 
-				const bloomEffect = new POSTPROCESSING.BloomEffect()
-				// bloomEffect.threshold = 0.2;  // 0.0 - 1.0
+				const bloomEffect = new POSTPROCESSING.SelectiveBloomEffect(scene,camera)
 				bloomEffect.luminanceMaterial.threshold = 0.1
-				bloomEffect.luminanceMaterial.smoothing = 0.1
-				bloomEffect.intensity = 1;  // 0.0 - 3.0
-				bloomEffect.blurPass.kernelSize = POSTPROCESSING.KernelSize.VERY_SMALL;
+				bloomEffect.luminanceMaterial.smoothing = 0.3
+				bloomEffect.intensity = 4;
+				bloomEffect.blurPass.kernelSize = POSTPROCESSING.KernelSize.SMALL;
 				console.log("kernel size", bloomEffect.blurPass.kernelSize)
+			
 				const effectPass = new POSTPROCESSING.EffectPass(camera, bloomEffect)
+
 				// const effectPass = new POSTPROCESSING.EffectPass(camera, new POSTPROCESSING.BokehEffect())
 
 				composer = new POSTPROCESSING.EffectComposer( renderer );
@@ -115,24 +116,31 @@
 
 						// use of RoughnessMipmapper is optional
 						const loader = new THREE.GLTFLoader().setPath( 'models/gltf/' );
-						//ISLA_MIXERv1
-						loader.load( 'ISLA_V3.gltf', function ( gltf ) {
 
-							model = gltf.scene;
-							model.position.set(0.25,0,0)
+						loader.load( 'ISLA_V2.gltf', function ( gltf ) {
+							loader.load( 'corazon_v2.gltf', function ( heartGltf ) {
+								const heartModel = heartGltf.scene;
 
-							mixer = new THREE.AnimationMixer( model );
-							window.gltf = gltf;
-							const clip = gltf.animations[ 0 ];
-							const anim = mixer.clipAction(clip)
-							window.anim = anim;
-							anim.reset().play();
+								model = gltf.scene;
+								model.position.set(0.25,0,0)
+								heartModel.position.set(0.25, 0, 0)
 
-							scene.add( model );
+								mixer = new THREE.AnimationMixer( model );
+								window.gltf = gltf;
+								const clip = gltf.animations[ 0 ];
+								const anim = mixer.clipAction(clip)
+								window.anim = anim;
+								anim.reset().play();
 
-							render();
+								// Add to selection of selectivebloom
+								bloomEffect.selection.add(heartModel.children[0])
 
-						} );
+								scene.add( model );
+								scene.add( heartModel );
+
+								render();
+							});
+						});
 
 					} );
 
@@ -158,9 +166,9 @@
 			}
 
 			function onDocumentMouseMove( event ) {
-				mouseX = scale(event.clientX /  window.innerWidth, -10, 10);
+				mouseX = scale(event.clientX /  window.innerWidth, -3, 3);
 				// console.log(mouseX)
-				mouseY = scale(event.clientY / window.innerHeight, -1, -5);
+				mouseY = scale(event.clientY / window.innerHeight, 0.5, 2);
 				//console.log(mouseY)
 			}
 
@@ -179,8 +187,8 @@
 			function render() {
 				requestAnimationFrame( render );
 
-				camera.position.x += ( mouseX - camera.position.x ) * .05;
-				camera.position.y += (  - mouseY - camera.position.y ) * .05;
+				camera.position.x += ( - mouseX - camera.position.x ) * .05;
+				camera.position.y += ( mouseY - camera.position.y ) * .05;
 
 				camera.lookAt( 0, 0.5, 0 );
 
