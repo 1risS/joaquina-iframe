@@ -16,7 +16,8 @@
         <script src="UnrealBloomPass.js"></script>
         <script src="LuminosityHighPassShader.js"></script>
         <script src="CopyShader.js"></script>
-        <script src="ShaderPass.js"></script>
+		<script src="ShaderPass.js"></script>
+		<script src="XYZLoader.js"></script>
 <style>
     body {
         margin: 0;
@@ -32,14 +33,12 @@
 
 
 			let camera, scene, model, renderer, composer, clock, animClock, mixer;
-			let bloomPass;
 			let bloomEffect;
 			let mouseX = 0;
 			let mouseY = 0;
 			let windowHalfX = window.innerWidth / 2;
 			let windowHalfY = window.innerHeight / 2;
-
-			let bloomStrength = 0;
+			let points;
 
 			init();
 
@@ -77,11 +76,6 @@
 
 				// Render passes and composer
 				const renderScene = new POSTPROCESSING.RenderPass( scene, camera );
-
-				bloomPass = new THREE.UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
-				bloomPass.threshold = 0.2;  // 0.0 - 1.0
-				bloomPass.strength = 2.5;  // 0.0 - 3.0
-				bloomPass.radius = 0.5;  // 0.0 - 1.0
 
 				bloomEffect = new POSTPROCESSING.SelectiveBloomEffect(scene,camera)
 				bloomEffect.luminanceMaterial.threshold = 0.1
@@ -138,6 +132,20 @@
 
 								scene.add( model );
 								scene.add( heartModel );
+
+								const loader = new THREE.XYZLoader();
+								loader.load( 'models/xyz/CHARCAS.xyz', function ( geometry ) {
+
+									geometry.center();
+
+									const vertexColors = ( geometry.hasAttribute( 'color' ) === true );
+
+									const material = new THREE.PointsMaterial( { size: 0.1, vertexColors: vertexColors } );
+
+									points = new THREE.Points( geometry, material );
+									scene.add( points );
+
+								});
 
 								render();
 							});
