@@ -75,17 +75,27 @@
 				pmremGenerator.compileEquirectangularShader();
 
 				// Render passes and composer
-				const renderScene = new THREE.RenderPass( scene, camera );
+				const renderScene = new POSTPROCESSING.RenderPass( scene, camera );
 
 				bloomPass = new THREE.UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
 				bloomPass.threshold = 0.2;  // 0.0 - 1.0
 				bloomPass.strength = 2.5;  // 0.0 - 3.0
 				bloomPass.radius = 0.5;  // 0.0 - 1.0
 
-				composer = new THREE.EffectComposer( renderer );
+				const bloomEffect = new POSTPROCESSING.BloomEffect()
+				// bloomEffect.threshold = 0.2;  // 0.0 - 1.0
+				bloomEffect.luminanceMaterial.threshold = 0.1
+				bloomEffect.luminanceMaterial.smoothing = 0.1
+				bloomEffect.intensity = 1;  // 0.0 - 3.0
+				bloomEffect.blurPass.kernelSize = POSTPROCESSING.KernelSize.VERY_SMALL;
+				console.log("kernel size", bloomEffect.blurPass.kernelSize)
+				const effectPass = new POSTPROCESSING.EffectPass(camera, bloomEffect)
+				// const effectPass = new POSTPROCESSING.EffectPass(camera, new POSTPROCESSING.BokehEffect())
+
+				composer = new POSTPROCESSING.EffectComposer( renderer );
 				composer.addPass( renderScene );
 				//composer.addPass( bloomPass );
-				composer.addPass(new POSTPROCESSING.EffectPass(camera, new POSTPROCESSING.BloomEffect()));
+				composer.addPass(effectPass);
 
 				// Load HDR
 				new THREE.RGBELoader()
