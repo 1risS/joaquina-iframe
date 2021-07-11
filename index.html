@@ -21,13 +21,69 @@
 <style>
     body {
         margin: 0;
+		background-color: black;
     }
+
+	.LoadingContainer {
+		width: 100%;
+		height: 100%;
+		position: absolute;
+		top: 0;
+		left: 0;
+		background: #000;
+		transition: opacity 1s ease;
+	}
+
+	.LoadingBox {
+		position: absolute;
+		top: 50%;
+		width: 100%;
+		transition: all 1s ease-out;
+	}
+
+	.LoadingMessage {
+		color: #ffffff;
+		width: 100%;
+		text-align: center;
+		font-size: 30px;
+		margin-top: -75px;
+		margin-bottom: 2rem;
+	}
+
+	.ProgressBar {
+		position: relative;
+		left: 40%;
+		text-align: center;
+		background: transparent;
+		width: 20%;
+		height: 50px;
+		margin-left: -5px;
+	}
+
+	.Bar{
+		background: rgba(255, 255, 255, 1);
+		width: 0%;
+		height: 30px;
+		margin: 5px;
+		transition: width 0.1s ease;
+	}
+
 </style>
     </head>
 
 	<body>
 		<div id="info">
 		</div>
+		<div id="loadingContainer" class="LoadingContainer">
+			<div class="LoadingBox">
+				<div class="LoadingMessage">
+				Loading assets
+				</div>
+				<div class="ProgressBar">
+					<div id="progress" class="Bar"></div>
+				</div>
+			</div>
+	    </div>
 
 		<script type="module">
 
@@ -43,6 +99,37 @@
 			init();
 
 			function init() {
+				//on loading progress bar
+				const progressElement = document.getElementById("progress")
+				const loadingContainerElement = document.getElementById(
+					"loadingContainer"
+				)
+
+				function onEnter() {
+					console.debug("onEnter")
+					progressElement.style.width = 0
+					progressElement.style.opacity = 1
+				}
+
+				function onProgress(xhr, lastItem) {
+					console.debug("onProgress")
+					const progress = (xhr.loaded / xhr.total) * 100
+					console.debug("progress:", progress)
+					if (lastItem && progress === 100) {
+						console.debug("finished!")
+						progressElement.style.width = "100%"
+						setTimeout(() => {
+							loadingContainerElement.style.opacity = 0
+						}, 500)
+						setTimeout(() => {
+							loadingContainerElement.style.display = "none"
+						}, 1500)
+					} else {
+						progressElement.style.width = progress + "%"
+					}
+				}
+
+				//
 
 				const container = document.createElement( 'div' );
 				document.body.appendChild( container );
@@ -78,8 +165,8 @@
 				const renderScene = new POSTPROCESSING.RenderPass( scene, camera );
 
 				bloomEffect = new POSTPROCESSING.SelectiveBloomEffect(scene,camera)
-				bloomEffect.luminanceMaterial.threshold = 0.1
-				bloomEffect.luminanceMaterial.smoothing = 0.3
+				bloomEffect.luminanceMaterial.threshold = 0.05
+				bloomEffect.luminanceMaterial.smoothing = 1
 				bloomEffect.intensity = 4;
 				bloomEffect.blurPass.kernelSize = POSTPROCESSING.KernelSize.SMALL;
 				console.log("kernel size", bloomEffect.blurPass.kernelSize)
@@ -92,6 +179,8 @@
 				composer.addPass( renderScene );
 				//composer.addPass( bloomPass );
 				composer.addPass(effectPass);
+
+				onEnter()
 
 				// Load HDR
 				new THREE.RGBELoader()
@@ -143,18 +232,18 @@
 
 									const vertexColors = ( geometry.hasAttribute( 'color' ) === true );
 
-									const material = new THREE.PointsMaterial( { size: 0.02, vertexColors: vertexColors } );
+									const material = new THREE.PointsMaterial( { size: 0.005, vertexColors: vertexColors } );
 
 									points = new THREE.Points( geometry, material );
 									scene.add( points );
+									points.scale.set(0.25,0.25,0.25)
 
 								});
 
 								render();
-							});
-						});
-
-					} );
+							}, (xhr) => onProgress(xhr, true));
+						}, onProgress);
+					}, onProgress);
 
 
 				// const controls = new THREE.OrbitControls( camera, renderer.domElement );
