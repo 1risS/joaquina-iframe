@@ -112,10 +112,11 @@
 				}
 
 				function onProgress(xhr, lastItem) {
+					console.debug(xhr)
 					console.debug("onProgress")
 					const progress = (xhr.loaded / xhr.total) * 100
 					console.debug("progress:", progress)
-					if (lastItem && progress === 100) {
+					if (lastItem && progress >= 100) {
 						console.debug("finished!")
 						progressElement.style.width = "100%"
 						setTimeout(() => {
