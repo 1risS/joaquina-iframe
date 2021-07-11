@@ -286,7 +286,7 @@
 
 			function onDocumentClick(event) {
 				if (INTERSECTED) {
-					window.location.href = "https://1riss.github.io/"
+					window.location.href = "https://joaquina.media/"
 				}
 			}
 
@@ -311,27 +311,29 @@
 				camera.lookAt( 0, 0.5, 0 );
 
 				//raycaster
-				raycaster.setFromCamera( pointer, camera );
-				const intersects = raycaster.intersectObjects([heartObject]);
-				if ( intersects.length > 0 ) {
-					if ( INTERSECTED != intersects[ 0 ].object ) {
-						if (INTERSECTED) {
+				if (heartObject) {
+					raycaster.setFromCamera( pointer, camera );
+					const intersects = raycaster.intersectObjects([heartObject]);
+					if ( intersects.length > 0 ) {
+						if ( INTERSECTED != intersects[ 0 ].object ) {
+							if (INTERSECTED) {
+								INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
+								bloomEffect.selection.delete(INTERSECTED)
+							}
+							INTERSECTED = intersects[ 0 ].object;
+							INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+							INTERSECTED.material.emissive.setHex( 0xff0000 );
+							bloomEffect.selection.add(INTERSECTED)
+						}
+						document.body.style.cursor = "pointer";
+					} else {
+						if ( INTERSECTED ) {
 							INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
 							bloomEffect.selection.delete(INTERSECTED)
 						}
-						INTERSECTED = intersects[ 0 ].object;
-						INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
-						INTERSECTED.material.emissive.setHex( 0xff0000 );
-						bloomEffect.selection.add(INTERSECTED)
+						INTERSECTED = null;
+						document.body.style.cursor = "default";
 					}
-					document.body.style.cursor = "pointer";
-				} else {
-					if ( INTERSECTED ) {
-						INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
-						bloomEffect.selection.delete(INTERSECTED)
-					}
-					INTERSECTED = null;
-					document.body.style.cursor = "default";
 				}
 
 				const time = clock.getElapsedTime();
