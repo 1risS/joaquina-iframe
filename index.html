@@ -120,7 +120,7 @@
 					} else {
 						contentLength = parseInt(xhr.target.getResponseHeader('content-length'), 10);
 					}
-					const progress = (xhr.loaded / contentLength) * 100
+					const progress = Math.min(100, (xhr.loaded / contentLength) * 100)
 					console.debug("progress:", progress)
 					if (lastItem && progress >= 100) {
 						console.debug("finished!")
