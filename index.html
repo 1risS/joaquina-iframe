@@ -118,7 +118,7 @@
 					if (xhr.lengthComputable) {
 						contentLength = xhr.total;
 					} else {
-						contentLength = parseInt(xhr.target.getResponseHeader('x-decompressed-content-length'), 10);
+						contentLength = parseInt(xhr.target.getResponseHeader('content-length'), 10);
 					}
 					const progress = (xhr.loaded / contentLength) * 100
 					console.debug("progress:", progress)
