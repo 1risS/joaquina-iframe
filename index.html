@@ -55,6 +55,10 @@
 				margin-top: -75px;
 				margin-bottom: 2rem;
 			}
+			#Counter {
+				color: #ffffff;
+				font-size: 18px;
+			}
 
 			.ProgressBar {
 				position: relative;
@@ -81,7 +85,7 @@
 		<div id="loadingContainer" class="LoadingContainer">
 			<div class="LoadingBox">
 				<div class="LoadingMessage">
-				Loading assets
+				Loading assets <span id="Counter"></span>
 				</div>
 				<div class="ProgressBar">
 					<div id="progress" class="Bar"></div>
@@ -114,6 +118,7 @@
 				const loadingContainerElement = document.getElementById(
 					"loadingContainer"
 				)
+				const counterEl = document.getElementById("Counter");
 
 				function onEnter() {
 					console.debug("onEnter")
@@ -121,7 +126,7 @@
 					progressElement.style.opacity = 1
 				}
 
-				function onProgress(xhr, lastItem) {
+				function onProgress(xhr, lastItem, item) {
 					console.debug(xhr)
 					console.debug("onProgress")
 					let contentLength;
@@ -132,6 +137,7 @@
 					}
 					const progress = Math.min(100, (xhr.loaded / contentLength) * 100)
 					console.debug("progress:", progress)
+					counterEl.innerText = `${item} / 3`;
 					if (lastItem && progress >= 100) {
 						console.debug("finished!")
 						progressElement.style.width = "100%"
@@ -260,9 +266,9 @@
 								});
 
 								render();
-							}, (xhr) => onProgress(xhr, true));
-						}, onProgress);
-					}, onProgress);
+							}, (xhr) => onProgress(xhr, true, 3));
+						}, (xhr) => onProgress(xhr, false, 2));
+					}, (xhr) => onProgress(xhr, false, 1));
 
 				window.addEventListener( 'resize', onWindowResize );
 
