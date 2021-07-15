@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+    <title>Bio</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link type="text/css" rel="stylesheet" href="main.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/postprocessing@6.22.0"></script>
+    <script src="OrbitControls.js"></script>
+    <script src="GLTFLoader.js"></script>
+    <script src="RGBELoader.js"></script>
+    <script src="RoughnessMipmapper.js"></script>
+    <script src="EffectComposer.js"></script>
+    <script src="RenderPass.js"></script>
+    <script src="UnrealBloomPass.js"></script>
+    <script src="LuminosityHighPassShader.js"></script>
+    <script src="CopyShader.js"></script>
+    <script src="ShaderPass.js"></script>
+    <script src="XYZLoader.js"></script>
+	</head>
+
+	<body>
+
+		<script type="module">
+
+			let camera, scene, renderer;
+
+			init();
+			render();
+
+			function init() {
+
+				const container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.25, 20 );
+				camera.position.set( 0,0,-0.2);
+
+				scene = new THREE.Scene();
+
+				new THREE.RGBELoader()
+					.setDataType( THREE.UnsignedByteType )
+					.setPath( 'textures/equirectangular/' )
+					.load( 'circus_arena_2k.hdr', function ( texture ) {
+
+						const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
+
+						//scene.background = envMap;
+						scene.environment = envMap;
+
+						texture.dispose();
+						pmremGenerator.dispose();
+
+						render();
+
+						// model
+
+						// use of RoughnessMipmapper is optional
+						const roughnessMipmapper = new THREE.RoughnessMipmapper( renderer );
+
+						const loader = new THREE.GLTFLoader().setPath( 'models/gltf/' );
+						loader.load( 'BIO_webv1.gltf', function ( gltf ) {
+
+							gltf.scene.traverse( function ( child ) {
+
+								if ( child.isMesh ) {
+
+									roughnessMipmapper.generateMipmaps( child.material );
+
+								}
+
+							} );
+
+							scene.add( gltf.scene );
+
+							roughnessMipmapper.dispose();
+
+							render();
+
+						} );
+
+					} );
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.toneMapping = THREE.ACESFilmicToneMapping;
+				renderer.toneMappingExposure = 1;
+				renderer.outputEncoding = THREE.sRGBEncoding;
+				container.appendChild( renderer.domElement );
+
+				const pmremGenerator = new THREE.PMREMGenerator( renderer );
+				pmremGenerator.compileEquirectangularShader();
+
+				const controls = new THREE.OrbitControls( camera, renderer.domElement );
+				controls.addEventListener( 'change', render ); // use if there is no animation loop
+				controls.minDistance = 2;
+				controls.maxDistance = 10;
+				controls.target.set( 0, 0, - 0.2 );
+				controls.update();
+
+				window.addEventListener( 'resize', onWindowResize );
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				render();
+
+			}
+
+			//
+
+			function render() {
+
+				camera.lookAt( 0, 0.5, 0 );
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+
+	</body>
+</html>
