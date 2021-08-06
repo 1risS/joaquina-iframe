@@ -18,6 +18,7 @@
         <script src="CopyShader.js"></script>
 		<script src="ShaderPass.js"></script>
 		<script src="XYZLoader.js"></script>
+		<script src="WebGL.js"></script>
 		<style>
 			body {
 				margin: 0;
@@ -27,7 +28,7 @@
 			@font-face {
 			font-family: "Diatype";
 			src: url("./fonts/ABC Diatype/ABCDiatype-Thin-Trial.woff2");
-		}
+			}
 
 			.LoadingContainer {
 				width: 100%;
@@ -76,8 +77,12 @@
 				height: 30px;
 				margin: 5px;
 				transition: width 0.1s ease;
+				border-radius: 60px;
 			}
 
+			.hidden{
+				display: none;
+			}
 		</style>
     </head>
 
@@ -91,272 +96,286 @@
 					<div id="progress" class="Bar"></div>
 				</div>
 			</div>
-	    </div>
+		</div>
+
+		<video autoplay muted loop class="hidden" id="myVideo">
+			<source src="videos/PRadera_Eco_Montaña.mp4" type="video/mp4">
+		</video>
 
 		<script type="module">
+			if ( THREE.WEBGL.isWebGLAvailable() ) {
+				action();
+			} else {
+				console.log("No WebGL")
+				const video = document.getElementById("myVideo");
+				const loadingContainer = document.getElementById("loadingContainer");
+				video.classList.remove("hidden");
+				loadingContainer.classList.add("hidden")
+			}
 
+			function action(){
 
-			let camera, scene, model, renderer, composer, clock, animClock, mixer;
-			let heartScene;
-			let heartObject;
-			let bloomEffect;
-			let mouseX = 0;
-			let mouseY = 0;
-			let windowHalfX = window.innerWidth / 2;
-			let windowHalfY = window.innerHeight / 2;
-			let points;
-			let INTERSECTED;
+				let camera, scene, model, renderer, composer, clock, animClock, mixer;
+				let heartScene;
+				let heartObject;
+				let bloomEffect;
+				let mouseX = 0;
+				let mouseY = 0;
+				let windowHalfX = window.innerWidth / 2;
+				let windowHalfY = window.innerHeight / 2;
+				let points;
+				let INTERSECTED;
 
-			const pointer = new THREE.Vector2();
-			const raycaster = new THREE.Raycaster();
+				const pointer = new THREE.Vector2();
+				const raycaster = new THREE.Raycaster();
 
-			init();
+				init();
 
-			function init() {
-				//on loading progress bar
-				const progressElement = document.getElementById("progress")
-				const loadingContainerElement = document.getElementById(
-					"loadingContainer"
-				)
-				const counterEl = document.getElementById("Counter");
+				function init() {
+					//on loading progress bar
+					const progressElement = document.getElementById("progress")
+					const loadingContainerElement = document.getElementById(
+						"loadingContainer"
+					)
+					const counterEl = document.getElementById("Counter");
 
-				function onEnter() {
-					console.debug("onEnter")
-					progressElement.style.width = 0
-					progressElement.style.opacity = 1
+					function onEnter() {
+						console.debug("onEnter")
+						progressElement.style.width = 0
+						progressElement.style.opacity = 1
+					}
+
+					function onProgress(xhr, lastItem, item) {
+						console.debug(xhr)
+						console.debug("onProgress")
+						let contentLength;
+						if (xhr.lengthComputable) {
+							contentLength = xhr.total;
+						} else {
+							contentLength = parseInt(xhr.target.getResponseHeader('content-length'), 10);
+						}
+						const progress = Math.min(100, (xhr.loaded / contentLength) * 100)
+						console.debug("progress:", progress)
+						counterEl.innerText = `${item} / 3`;
+						if (lastItem && progress >= 100) {
+							console.debug("finished!")
+							progressElement.style.width = "100%"
+							setTimeout(() => {
+								loadingContainerElement.style.opacity = 0
+							}, 500)
+							setTimeout(() => {
+								loadingContainerElement.style.display = "none"
+							}, 1500)
+						} else {
+							progressElement.style.width = progress + "%"
+						}
+					}
+
+					//
+
+					const container = document.createElement( 'div' );
+					document.body.appendChild( container );
+
+					clock = new THREE.Clock();
+					clock.start()
+
+					animClock = new THREE.Clock();
+					animClock.start()
+
+					camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.25, 20 );
+					camera.position.set(0,-1,2)
+
+					scene = new THREE.Scene();
+
+					renderer = new THREE.WebGLRenderer( {
+						powerPreference: "high-performance",
+						antialias: false,
+						stencil: false,
+						depth: false
+					} );
+					renderer.setPixelRatio( window.devicePixelRatio );
+					renderer.setSize( window.innerWidth, window.innerHeight );
+					renderer.toneMapping = THREE.ACESFilmicToneMapping;
+					renderer.toneMappingExposure = 1;
+					renderer.outputEncoding = THREE.sRGBEncoding;
+					container.appendChild( renderer.domElement );
+
+					const pmremGenerator = new THREE.PMREMGenerator( renderer );
+					pmremGenerator.compileEquirectangularShader();
+
+					// Render passes and composer
+					const renderScene = new POSTPROCESSING.RenderPass( scene, camera );
+
+					bloomEffect = new POSTPROCESSING.SelectiveBloomEffect(scene,camera)
+					bloomEffect.luminanceMaterial.threshold = 0.05
+					bloomEffect.luminanceMaterial.smoothing = 1
+					bloomEffect.intensity = 4;
+					bloomEffect.blurPass.kernelSize = POSTPROCESSING.KernelSize.SMALL;
+					console.log("kernel size", bloomEffect.blurPass.kernelSize)
+				
+					const effectPass = new POSTPROCESSING.EffectPass(camera, bloomEffect)
+
+					// const effectPass = new POSTPROCESSING.EffectPass(camera, new POSTPROCESSING.BokehEffect())
+
+					composer = new POSTPROCESSING.EffectComposer( renderer );
+					composer.addPass( renderScene );
+					//composer.addPass( bloomPass );
+					composer.addPass(effectPass);
+
+					onEnter()
+
+					// Load HDR
+					new THREE.RGBELoader()
+						.setDataType( THREE.UnsignedByteType )
+						.setPath( 'textures/equirectangular/' )
+						.load( 'circus_arena_2k.hdr', function ( texture ) {
+
+							const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
+							//uncomment to see HDRI as background
+							//scene.background = envMap;
+							scene.environment = envMap;
+
+							texture.dispose();
+							pmremGenerator.dispose();
+
+							// model
+
+							// use of RoughnessMipmapper is optional
+							const loader = new THREE.GLTFLoader().setPath( 'models/gltf/' );
+
+							loader.load( 'ISLA_V2.gltf', function ( gltf ) {
+								loader.load( 'corazon_v2.gltf', function ( heartGltf ) {
+									heartScene = heartGltf.scene;
+
+									// Find heart object
+									heartObject = heartScene.children.find(obj => obj.name === "Default");
+
+									model = gltf.scene;
+									model.position.set(0.25,0,0)
+									heartScene.position.set(0.25, 0, 0)
+
+									mixer = new THREE.AnimationMixer( model );
+									window.gltf = gltf;
+									const clip = gltf.animations[ 0 ];
+									const anim = mixer.clipAction(clip)
+									window.anim = anim;
+									anim.reset().play();
+
+									// Add to selection of selectivebloom
+									// heartScene.children.forEach(( obj ) => {
+									// 	bloomEffect.selection.add(obj)
+									// })
+
+									scene.add( model );
+									scene.add( heartScene );
+
+									const loader = new THREE.XYZLoader();
+									loader.load( 'models/xyz/CHARCAS.xyz', function ( geometry ) {
+
+										geometry.center();
+
+										const vertexColors = ( geometry.hasAttribute( 'color' ) === true );
+
+										const material = new THREE.PointsMaterial( { size: 0.005, vertexColors: vertexColors } );
+
+										points = new THREE.Points( geometry, material );
+										scene.add( points );
+										points.scale.set(0.25,0.25,0.25)
+
+									});
+
+									render();
+								}, (xhr) => onProgress(xhr, true, 3));
+							}, (xhr) => onProgress(xhr, false, 2));
+						}, (xhr) => onProgress(xhr, false, 1));
+
+					window.addEventListener( 'resize', onWindowResize );
+
 				}
 
-				function onProgress(xhr, lastItem, item) {
-					console.debug(xhr)
-					console.debug("onProgress")
-					let contentLength;
-					if (xhr.lengthComputable) {
-						contentLength = xhr.total;
-					} else {
-						contentLength = parseInt(xhr.target.getResponseHeader('content-length'), 10);
+				// onhover cambia el punto de vista de la cam
+				document.addEventListener( 'mousemove', onDocumentMouseMove );
+
+				document.addEventListener("click", onDocumentClick)
+
+				function scale(v, min, max) {
+					return v * (max - min) + min;
+				}
+
+				function onDocumentMouseMove( event ) {
+					// for raycaster
+					pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+					pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+					mouseX = scale(event.clientX /  window.innerWidth, -3, 3);
+					// console.log(mouseX)
+					mouseY = scale(event.clientY / window.innerHeight, 0.5, 2);
+					//console.log(mouseY)
+				}
+
+				function onDocumentClick(event) {
+					if (INTERSECTED) {
+						window.location.href = "https://joaquina.media/"
 					}
-					const progress = Math.min(100, (xhr.loaded / contentLength) * 100)
-					console.debug("progress:", progress)
-					counterEl.innerText = `${item} / 3`;
-					if (lastItem && progress >= 100) {
-						console.debug("finished!")
-						progressElement.style.width = "100%"
-						setTimeout(() => {
-							loadingContainerElement.style.opacity = 0
-						}, 500)
-						setTimeout(() => {
-							loadingContainerElement.style.display = "none"
-						}, 1500)
-					} else {
-						progressElement.style.width = progress + "%"
-					}
+				}
+
+				function onWindowResize() {
+
+					camera.aspect = window.innerWidth / window.innerHeight;
+					camera.updateProjectionMatrix();
+
+					renderer.setSize( window.innerWidth, window.innerHeight );
+					composer.setSize( window.innerWidth, window.innerHeight );
+
 				}
 
 				//
 
-				const container = document.createElement( 'div' );
-				document.body.appendChild( container );
+				function render() {
+					requestAnimationFrame( render );
 
-				clock = new THREE.Clock();
-				clock.start()
+					camera.position.x += ( - mouseX - camera.position.x ) * .05;
+					camera.position.y += ( mouseY - camera.position.y ) * .05;
 
-				animClock = new THREE.Clock();
-				animClock.start()
+					camera.lookAt( 0, 0.5, 0 );
 
-				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.25, 20 );
-				camera.position.set(0,-1,2)
-
-				scene = new THREE.Scene();
-
-				renderer = new THREE.WebGLRenderer( {
-					powerPreference: "high-performance",
-					antialias: false,
-					stencil: false,
-					depth: false
-				} );
-				renderer.setPixelRatio( window.devicePixelRatio );
-				renderer.setSize( window.innerWidth, window.innerHeight );
-				renderer.toneMapping = THREE.ACESFilmicToneMapping;
-				renderer.toneMappingExposure = 1;
-				renderer.outputEncoding = THREE.sRGBEncoding;
-				container.appendChild( renderer.domElement );
-
-				const pmremGenerator = new THREE.PMREMGenerator( renderer );
-				pmremGenerator.compileEquirectangularShader();
-
-				// Render passes and composer
-				const renderScene = new POSTPROCESSING.RenderPass( scene, camera );
-
-				bloomEffect = new POSTPROCESSING.SelectiveBloomEffect(scene,camera)
-				bloomEffect.luminanceMaterial.threshold = 0.05
-				bloomEffect.luminanceMaterial.smoothing = 1
-				bloomEffect.intensity = 4;
-				bloomEffect.blurPass.kernelSize = POSTPROCESSING.KernelSize.SMALL;
-				console.log("kernel size", bloomEffect.blurPass.kernelSize)
-			
-				const effectPass = new POSTPROCESSING.EffectPass(camera, bloomEffect)
-
-				// const effectPass = new POSTPROCESSING.EffectPass(camera, new POSTPROCESSING.BokehEffect())
-
-				composer = new POSTPROCESSING.EffectComposer( renderer );
-				composer.addPass( renderScene );
-				//composer.addPass( bloomPass );
-				composer.addPass(effectPass);
-
-				onEnter()
-
-				// Load HDR
-				new THREE.RGBELoader()
-					.setDataType( THREE.UnsignedByteType )
-					.setPath( 'textures/equirectangular/' )
-					.load( 'circus_arena_2k.hdr', function ( texture ) {
-
-						const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
-						//uncomment to see HDRI as background
-						//scene.background = envMap;
-						scene.environment = envMap;
-
-						texture.dispose();
-						pmremGenerator.dispose();
-
-						// model
-
-						// use of RoughnessMipmapper is optional
-						const loader = new THREE.GLTFLoader().setPath( 'models/gltf/' );
-
-						loader.load( 'ISLA_V2.gltf', function ( gltf ) {
-							loader.load( 'corazon_v2.gltf', function ( heartGltf ) {
-								heartScene = heartGltf.scene;
-
-								// Find heart object
-								heartObject = heartScene.children.find(obj => obj.name === "Default");
-
-								model = gltf.scene;
-								model.position.set(0.25,0,0)
-								heartScene.position.set(0.25, 0, 0)
-
-								mixer = new THREE.AnimationMixer( model );
-								window.gltf = gltf;
-								const clip = gltf.animations[ 0 ];
-								const anim = mixer.clipAction(clip)
-								window.anim = anim;
-								anim.reset().play();
-
-								// Add to selection of selectivebloom
-								// heartScene.children.forEach(( obj ) => {
-								// 	bloomEffect.selection.add(obj)
-								// })
-
-								scene.add( model );
-								scene.add( heartScene );
-
-								const loader = new THREE.XYZLoader();
-								loader.load( 'models/xyz/CHARCAS.xyz', function ( geometry ) {
-
-									geometry.center();
-
-									const vertexColors = ( geometry.hasAttribute( 'color' ) === true );
-
-									const material = new THREE.PointsMaterial( { size: 0.005, vertexColors: vertexColors } );
-
-									points = new THREE.Points( geometry, material );
-									scene.add( points );
-									points.scale.set(0.25,0.25,0.25)
-
-								});
-
-								render();
-							}, (xhr) => onProgress(xhr, true, 3));
-						}, (xhr) => onProgress(xhr, false, 2));
-					}, (xhr) => onProgress(xhr, false, 1));
-
-				window.addEventListener( 'resize', onWindowResize );
-
-			}
-
-			// onhover cambia el punto de vista de la cam
-			document.addEventListener( 'mousemove', onDocumentMouseMove );
-
-			document.addEventListener("click", onDocumentClick)
-
-			function scale(v, min, max) {
-				return v * (max - min) + min;
-			}
-
-			function onDocumentMouseMove( event ) {
-				// for raycaster
-				pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-				pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
-				mouseX = scale(event.clientX /  window.innerWidth, -3, 3);
-				// console.log(mouseX)
-				mouseY = scale(event.clientY / window.innerHeight, 0.5, 2);
-				//console.log(mouseY)
-			}
-
-			function onDocumentClick(event) {
-				if (INTERSECTED) {
-					window.location.href = "https://joaquina.media/"
-				}
-			}
-
-			function onWindowResize() {
-
-				camera.aspect = window.innerWidth / window.innerHeight;
-				camera.updateProjectionMatrix();
-
-				renderer.setSize( window.innerWidth, window.innerHeight );
-				composer.setSize( window.innerWidth, window.innerHeight );
-
-			}
-
-			//
-
-			function render() {
-				requestAnimationFrame( render );
-
-				camera.position.x += ( - mouseX - camera.position.x ) * .05;
-				camera.position.y += ( mouseY - camera.position.y ) * .05;
-
-				camera.lookAt( 0, 0.5, 0 );
-
-				//raycaster
-				if (heartObject) {
-					raycaster.setFromCamera( pointer, camera );
-					const intersects = raycaster.intersectObjects([heartObject]);
-					if ( intersects.length > 0 ) {
-						if ( INTERSECTED != intersects[ 0 ].object ) {
-							if (INTERSECTED) {
+					//raycaster
+					if (heartObject) {
+						raycaster.setFromCamera( pointer, camera );
+						const intersects = raycaster.intersectObjects([heartObject]);
+						if ( intersects.length > 0 ) {
+							if ( INTERSECTED != intersects[ 0 ].object ) {
+								if (INTERSECTED) {
+									INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
+									bloomEffect.selection.delete(INTERSECTED)
+								}
+								INTERSECTED = intersects[ 0 ].object;
+								INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+								INTERSECTED.material.emissive.setHex( 0xff0000 );
+								bloomEffect.selection.add(INTERSECTED)
+							}
+							document.body.style.cursor = "pointer";
+						} else {
+							if ( INTERSECTED ) {
 								INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
 								bloomEffect.selection.delete(INTERSECTED)
 							}
-							INTERSECTED = intersects[ 0 ].object;
-							INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
-							INTERSECTED.material.emissive.setHex( 0xff0000 );
-							bloomEffect.selection.add(INTERSECTED)
+							INTERSECTED = null;
+							document.body.style.cursor = "default";
 						}
-						document.body.style.cursor = "pointer";
-					} else {
-						if ( INTERSECTED ) {
-							INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
-							bloomEffect.selection.delete(INTERSECTED)
-						}
-						INTERSECTED = null;
-						document.body.style.cursor = "default";
 					}
+
+					const time = clock.getElapsedTime();
+
+					bloomEffect.luminanceMaterial.threshold = scale(Math.sin(time * 4), 0.05, 0.5);
+
+					const delta = animClock.getDelta();
+					mixer.update(delta);
+
+					composer.render(delta)
+
 				}
-
-				const time = clock.getElapsedTime();
-
-				bloomEffect.luminanceMaterial.threshold = scale(Math.sin(time * 4), 0.05, 0.5);
-
-				const delta = animClock.getDelta();
-				mixer.update(delta);
-
-				composer.render(delta)
-
-			}
-
+		}
 		</script>
 
 	</body>

@@ -24,112 +24,217 @@
 			margin: 0;
 			background-color: black;
 		}
+		@font-face {
+			font-family: "Diatype";
+			src: url("./fonts/ABC Diatype/ABCDiatype-Thin-Trial.woff2");
+			}
+
+			.LoadingContainer {
+				width: 100%;
+				height: 100%;
+				position: absolute;
+				top: 0;
+				left: 0;
+				background: #000;
+				transition: opacity 1s ease;
+			}
+
+			.LoadingBox {
+				position: absolute;
+				top: 50%;
+				width: 100%;
+				transition: all 1s ease-out;
+			}
+
+			.LoadingMessage {
+				color: #ffffff;
+				font-family: "Diatype";
+				width: 100%;
+				text-align: center;
+				font-size: 30px;
+				margin-top: -75px;
+				margin-bottom: 2rem;
+			}
+			#Counter {
+				color: #ffffff;
+				font-size: 18px;
+			}
+
+			.ProgressBar {
+				position: relative;
+				left: 40%;
+				text-align: center;
+				background: transparent;
+				width: 20%;
+				height: 50px;
+				margin-left: -5px;
+			}
+
+			.Bar{
+				background: rgba(255, 255, 255, 1);
+				width: 0%;
+				height: 30px;
+				margin: 5px;
+				transition: width 0.1s ease;
+				border-radius: 60px;
+			}
+
 	</style>
 
 	<body>
+		<div id="loadingContainer" class="LoadingContainer">
+			<div class="LoadingBox">
+				<div class="LoadingMessage">
+				Loading assets <span id="Counter"></span>
+				</div>
+				<div class="ProgressBar">
+					<div id="progress" class="Bar"></div>
+				</div>
+			</div>
+		</div>
 
 		<script type="module">
+		
 
-			let camera, scene, renderer;
+				let camera, scene, renderer;
 
-			init();
-			render();
+				init();
+				render();
 
-			function init() {
+				function init() {
 
-				const container = document.createElement( 'div' );
-				document.body.appendChild( container );
+					//on loading progress bar
+					const progressElement = document.getElementById("progress")
+					const loadingContainerElement = document.getElementById(
+						"loadingContainer"
+					)
+					const counterEl = document.getElementById("Counter");
 
-				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.25, 20 );
-				camera.position.set( 0,0,-0.2);
+					function onEnter() {
+						console.debug("onEnter")
+						progressElement.style.width = 0
+						progressElement.style.opacity = 1
+					}
 
-				scene = new THREE.Scene();
+					function onProgress(xhr, lastItem, item) {
+						console.debug(xhr)
+						console.debug("onProgress")
+						let contentLength;
+						if (xhr.lengthComputable) {
+							contentLength = xhr.total;
+						} else {
+							contentLength = parseInt(xhr.target.getResponseHeader('content-length'), 10);
+						}
+						const progress = Math.min(100, (xhr.loaded / contentLength) * 100)
+						console.debug("progress:", progress)
+						counterEl.innerText = `${item} / 3`;
+						if (lastItem && progress >= 100) {
+							console.debug("finished!")
+							progressElement.style.width = "100%"
+							setTimeout(() => {
+								loadingContainerElement.style.opacity = 0
+							}, 500)
+							setTimeout(() => {
+								loadingContainerElement.style.display = "none"
+							}, 1500)
+						} else {
+							progressElement.style.width = progress + "%"
+						}
+					}
 
-				new THREE.RGBELoader()
-					.setDataType( THREE.UnsignedByteType )
-					.setPath( 'textures/equirectangular/' )
-					.load( 'circus_arena_2k.hdr', function ( texture ) {
+					const container = document.createElement( 'div' );
+					document.body.appendChild( container );
 
-						const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
+					camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.25, 20 );
+					camera.position.set( 0,0,-0.2);
 
-						//scene.background = envMap;
-						scene.environment = envMap;
+					scene = new THREE.Scene();
 
-						texture.dispose();
-						pmremGenerator.dispose();
+					new THREE.RGBELoader()
+						.setDataType( THREE.UnsignedByteType )
+						.setPath( 'textures/equirectangular/' )
+						.load( 'circus_arena_2k.hdr', function ( texture ) {
 
-						render();
+							const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
 
-						// model
+							//scene.background = envMap;
+							scene.environment = envMap;
 
-						// use of RoughnessMipmapper is optional
-						const roughnessMipmapper = new THREE.RoughnessMipmapper( renderer );
-
-						const loader = new THREE.GLTFLoader().setPath( 'models/gltf/' );
-						loader.load( 'test2bio.gltf', function ( gltf ) {
-
-							gltf.scene.traverse( function ( child ) {
-
-								if ( child.isMesh ) {
-
-									roughnessMipmapper.generateMipmaps( child.material );
-
-								}
-
-							} );
-
-							scene.add( gltf.scene );
-
-							roughnessMipmapper.dispose();
+							texture.dispose();
+							pmremGenerator.dispose();
 
 							render();
 
-						} );
+							// model
 
-					} );
+							// use of RoughnessMipmapper is optional
+							const roughnessMipmapper = new THREE.RoughnessMipmapper( renderer );
 
-				renderer = new THREE.WebGLRenderer( { antialias: true } );
-				renderer.setPixelRatio( window.devicePixelRatio );
-				renderer.setSize( window.innerWidth, window.innerHeight );
-				renderer.toneMapping = THREE.ACESFilmicToneMapping;
-				renderer.toneMappingExposure = 1;
-				renderer.outputEncoding = THREE.sRGBEncoding;
-				container.appendChild( renderer.domElement );
+							const loader = new THREE.GLTFLoader().setPath( 'models/gltf/' );
+							loader.load( 'test2bio.gltf', function ( gltf ) {
 
-				const pmremGenerator = new THREE.PMREMGenerator( renderer );
-				pmremGenerator.compileEquirectangularShader();
+								gltf.scene.traverse( function ( child ) {
 
-				const controls = new THREE.OrbitControls( camera, renderer.domElement );
-				controls.addEventListener( 'change', render ); // use if there is no animation loop
-				controls.minDistance = 2;
-				controls.maxDistance = 10;
-				controls.target.set( 0, 0, - 0.2 );
-				controls.update();
+									if ( child.isMesh ) {
 
-				window.addEventListener( 'resize', onWindowResize );
+										roughnessMipmapper.generateMipmaps( child.material );
 
-			}
+									}
 
-			function onWindowResize() {
+								} );
 
-				camera.aspect = window.innerWidth / window.innerHeight;
-				camera.updateProjectionMatrix();
+								scene.add( gltf.scene );
 
-				renderer.setSize( window.innerWidth, window.innerHeight );
+								roughnessMipmapper.dispose();
 
-				render();
+								render();
 
-			}
+							}, (xhr) => onProgress(xhr,true,2) );
 
-			//
+						}, (xhr) => onProgress(xhr,false,1) );
 
-			function render() {
+					renderer = new THREE.WebGLRenderer( { antialias: true } );
+					renderer.setPixelRatio( window.devicePixelRatio );
+					renderer.setSize( window.innerWidth, window.innerHeight );
+					renderer.toneMapping = THREE.ACESFilmicToneMapping;
+					renderer.toneMappingExposure = 1;
+					renderer.outputEncoding = THREE.sRGBEncoding;
+					container.appendChild( renderer.domElement );
 
-				camera.lookAt( 0, 0.5, 0 );
+					const pmremGenerator = new THREE.PMREMGenerator( renderer );
+					pmremGenerator.compileEquirectangularShader();
 
-				renderer.render( scene, camera );
+					const controls = new THREE.OrbitControls( camera, renderer.domElement );
+					controls.addEventListener( 'change', render ); // use if there is no animation loop
+					controls.minDistance = 2;
+					controls.maxDistance = 10;
+					controls.target.set( 0, 0, - 0.2 );
+					controls.update();
 
-			}
+					window.addEventListener( 'resize', onWindowResize );
+
+				}
+
+				function onWindowResize() {
+
+					camera.aspect = window.innerWidth / window.innerHeight;
+					camera.updateProjectionMatrix();
+
+					renderer.setSize( window.innerWidth, window.innerHeight );
+
+					render();
+
+				}
+
+				//
+
+				function render() {
+
+					camera.lookAt( 0, 0.5, 0 );
+
+					renderer.render( scene, camera );
+
+				}
 
 		</script>
 
