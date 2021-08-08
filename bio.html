@@ -127,7 +127,7 @@
 						}
 						const progress = Math.min(100, (xhr.loaded / contentLength) * 100)
 						console.debug("progress:", progress)
-						counterEl.innerText = `${item} / 3`;
+						counterEl.innerText = `${item} / 2`;
 						if (lastItem && progress >= 100) {
 							console.debug("finished!")
 							progressElement.style.width = "100%"
@@ -153,7 +153,7 @@
 					new THREE.RGBELoader()
 						.setDataType( THREE.UnsignedByteType )
 						.setPath( 'textures/equirectangular/' )
-						.load( 'circus_arena_2k.hdr', function ( texture ) {
+						.load( 'glass_passage_2k.hdr', function ( texture ) {
 
 							const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
 
@@ -171,7 +171,7 @@
 							const roughnessMipmapper = new THREE.RoughnessMipmapper( renderer );
 
 							const loader = new THREE.GLTFLoader().setPath( 'models/gltf/' );
-							loader.load( 'test2bio.gltf', function ( gltf ) {
+							loader.load( 'reduction3.gltf', function ( gltf ) {
 
 								gltf.scene.traverse( function ( child ) {
 
