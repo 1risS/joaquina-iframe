@@ -81,12 +81,105 @@
 			}
 
 			.hidden{
-				display: none;
+				display: none!important;
 			}
+
+			.disappear{
+				opacity: 0;
+			}
+
+			.modalContainer {
+				width: 50%;
+				height: 100%;
+				position: absolute;
+				top: 15%;
+				left: 25%;
+				height: 70%;
+				background: rgba(0,0,0,0.7);
+				color: #fff;
+				border-radius: 25px;
+				display: flex;
+				flex-direction: column;
+				justify-content: space-evenly;
+				align-items: center;
+				font-family: "Diatype";
+				transition: opacity 0.5s ease-in-out;
+			}
+			.closeButtonContainer{
+				width: 100%;
+				display: flex;
+				flex-direction: row;
+				justify-content: flex-end;
+			}
+			.cross{
+				display: flex;
+				align-self: flex-end;
+				margin-right: 15%;
+				margin-top: 5%;
+				margin-bottom: 5%;
+				height: 30px;
+			}
+			.languageButtonContainer{
+				display: flex;
+				flex-direction: row;
+				justify-content: flex-end;
+				width: 100%;
+				margin-right: 30%;
+				margin-bottom: 5%;
+				font-size: 23px;
+			}
+			.divisor{
+				margin-left: 10px;
+				margin-right: 10px;
+			}
+			.text{
+				padding-left: 10%;
+				padding-right: 15%;
+				font-size: 25px;
+				margin-bottom: 10%;
+				text-align: right;
+			}
+
+			.blurred{
+					text-shadow: 0px 0px 10px whitesmoke;
+				}
+
+			@media (max-width: 900px){
+				.modalContainer {
+					padding: 40px 0px 40px 0px;
+					width: 70%;
+					height: 100%;
+				}
+				.text {
+					font-size: 20px;
+					}
+				.languageButtonContainer {
+					font-size: 18px;
+				}
+				.cross{
+				height: 25px;
+				margin-right: 15%;
+				margin-bottom: 5%;
+				}
+
+			}
+
 		</style>
     </head>
 
 	<body>
+		<div class="modalContainer" id="modalContainer">
+			<div id="closeBtn" class="closeButtonContainer">
+				<img  class="cross" src="./close.svg" alt="Close" />
+			</div>
+			<div class="languageButtonContainer">
+				<div class="lang es" id="es">ES</div>
+				<div class="divisor">|</div>
+				<div class="lang en" id="en">EN</div>
+			</div>
+			<div class="text" id="text"> </div>
+		</div>
+
 		<div id="loadingContainer" class="LoadingContainer">
 			<div class="LoadingBox">
 				<div class="LoadingMessage">
@@ -103,6 +196,26 @@
 		</video>
 
 		<script type="module">
+
+			let idioma = {
+				es: "Como artista digital, combino tecnologías para crear experiencias que borren los límites entre el mundo físico y onírico. Compongo universos imaginarios, explorando herramientas que me permitan generar entornos sintéticos, estéticos y estimulantes. Me interesa la práctica artística como espacio interactivo y la experiencia audiovisual como investigación de la relación humana con la máquina",
+				en: "As a digital artist, I combine different technologies to create experiences that blur the boundaries between the physical and the dream world. I explore tools that allow me to generate synthetic, aesthetic and stimulating surroundings and create imaginary universes. I am interested in the practice of art as an interactive space and the audiovisual experience as an investigation into the relationship between human and machine."
+			}
+
+			function onClose () {
+				console.log("cierro")
+				const modal = document.getElementById("modalContainer")
+				modal.classList.add("disappear")
+			}
+
+			function changeLang(lang) {
+				idioma[lang]
+				document.getElementById("text").innerText = idioma[lang]
+				const langElems = document.getElementsByClassName("lang")
+				Array.from(langElems).forEach(el => el.classList.remove("blurred"))
+				document.getElementById(lang).classList.add("blurred")
+			}
+
 			if ( THREE.WEBGL.isWebGLAvailable() ) {
 				action();
 			} else {
@@ -112,6 +225,14 @@
 				video.classList.remove("hidden");
 				loadingContainer.classList.add("hidden")
 			}
+
+			const closeBtn = document.getElementById("closeBtn")
+			closeBtn.addEventListener("click", onClose)
+
+			document.getElementById("es").addEventListener("click", () => changeLang("es"))
+
+			document.getElementById("en").addEventListener("click", () => changeLang("en"))
+			changeLang("es")
 
 			function action(){
 
@@ -243,7 +364,7 @@
 							// use of RoughnessMipmapper is optional
 							const loader = new THREE.GLTFLoader().setPath( 'models/gltf/' );
 
-							loader.load( 'ISLA_V2.gltf', function ( gltf ) {
+							loader.load( 'ISLA_V7.gltf', function ( gltf ) {
 								loader.load( 'corazon_v2.gltf', function ( heartGltf ) {
 									heartScene = heartGltf.scene;
 
