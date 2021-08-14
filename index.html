@@ -138,6 +138,7 @@
 				font-size: 25px;
 				margin-bottom: 10%;
 				text-align: right;
+				min-height: 35%;
 			}
 
 			.blurred{
@@ -364,16 +365,16 @@
 							// use of RoughnessMipmapper is optional
 							const loader = new THREE.GLTFLoader().setPath( 'models/gltf/' );
 
-							loader.load( 'ISLA_V7.gltf', function ( gltf ) {
-								loader.load( 'corazon_v2.gltf', function ( heartGltf ) {
+							loader.load( 'ISLAv8.gltf', function ( gltf ) {
+								loader.load( 'cora.gltf', function ( heartGltf ) {
 									heartScene = heartGltf.scene;
 
 									// Find heart object
 									heartObject = heartScene.children.find(obj => obj.name === "Default");
 
 									model = gltf.scene;
-									model.position.set(0.25,0,0)
-									heartScene.position.set(0.25, 0, 0)
+									model.position.set(0.25,-0.1,-1.75)
+									heartScene.position.set(0.25, -0.1, -1.75)
 
 									mixer = new THREE.AnimationMixer( model );
 									window.gltf = gltf;
