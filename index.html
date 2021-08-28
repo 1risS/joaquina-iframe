@@ -72,11 +72,35 @@
 			}
 
 			.Bar{
-				background: rgba(255, 255, 255, 1);
 				width: 0%;
 				height: 30px;
 				margin: 5px;
 				transition: width 0.1s ease;
+				animation: color 5s infinite;
+			}
+
+			@keyframes color {
+				0% {
+					background: #96BAE3;
+				}
+				15% {
+					background: #7153B9;
+				}
+				30% {
+					background: #0D263B;
+				}
+				45% {
+					background: #B584CB;
+				}
+				50% {
+					background: #6595B6;
+				}
+				65% {
+					background: #A5A7C2;
+				}
+				80% {
+					background: #7BAAC6;
+				}
 			}
 
 			.hidden{
