@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
+  <head>
     <title>Bio</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <link type="text/css" rel="stylesheet" href="main.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous"></script>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <link type="text/css" rel="stylesheet" href="main.css" />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+      integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ=="
+      crossorigin="anonymous"
+    ></script>
     <script src="https://unpkg.com/postprocessing@6.22.0"></script>
     <script src="OrbitControls.js"></script>
     <script src="GLTFLoader.js"></script>
@@ -18,247 +25,255 @@
     <script src="CopyShader.js"></script>
     <script src="ShaderPass.js"></script>
     <script src="XYZLoader.js"></script>
-	</head>
-	<style>
-		body {
-			margin: 0;
-			background-color: black;
-		}
-		@font-face {
-			font-family: "Diatype";
-			src: url("./fonts/ABC Diatype/ABCDiatype-Thin-Trial.woff2");
+  </head>
+  <style>
+    body {
+      margin: 0;
+      background-color: black;
+    }
+    @font-face {
+      font-family: "Diatype";
+      src: url("./fonts/ABC Diatype/ABCDiatype-Thin-Trial.woff2");
+    }
+
+    .LoadingContainer {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: #000;
+      transition: opacity 1s ease;
+    }
+
+    .LoadingBox {
+      position: absolute;
+      top: 50%;
+      width: 100%;
+      transition: all 1s ease-out;
+    }
+
+    .LoadingMessage {
+      color: #ffffff;
+      font-family: "Diatype";
+      width: 100%;
+      text-align: center;
+      font-size: 30px;
+      margin-top: -75px;
+      margin-bottom: 2rem;
+    }
+    #Counter {
+      color: #ffffff;
+      font-size: 18px;
+    }
+
+    .ProgressBar {
+      position: relative;
+      left: 40%;
+      text-align: center;
+      background: transparent;
+      width: 20%;
+      height: 50px;
+      margin-left: -5px;
+    }
+
+    .Bar {
+      height: 30px;
+      margin: 5px;
+      transition: width 0.1s ease;
+      animation: color 5s infinite;
+    }
+
+    @keyframes color {
+      0% {
+        background: #96bae3;
+      }
+      15% {
+        background: #7153b9;
+      }
+      30% {
+        background: #0d263b;
+      }
+      45% {
+        background: #b584cb;
+      }
+      50% {
+        background: #6595b6;
+      }
+      65% {
+        background: #a5a7c2;
+      }
+      80% {
+        background: #7baac6;
+      }
+    }
+  </style>
+
+  <body>
+    <div id="loadingContainer" class="LoadingContainer">
+      <div class="LoadingBox">
+        <div class="LoadingMessage">
+          Queering time and Space <span id="Counter"></span>
+        </div>
+        <div class="ProgressBar">
+          <div id="progress" class="Bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+	let camera, scene, renderer;
+	let mouseX = 0;
+	let mouseY = 0;
+	let windowHalfX = window.innerWidth / 2;
+	let windowHalfY = window.innerHeight / 2;
+
+	init();
+	render();
+
+	function init() {
+        //on loading progress bar
+        const progressElement = document.getElementById("progress");
+        const loadingContainerElement = document.getElementById(
+        	"loadingContainer"
+        );
+        const counterEl = document.getElementById("Counter");
+
+        function onEnter() {
+			progressElement.style.width = 0;
+			progressElement.style.opacity = 1;
+        }
+
+        function onProgress(xhr, lastItem, item) {
+			let contentLength;
+			if (xhr.lengthComputable) {
+				contentLength = xhr.total;
+			} else {
+				contentLength = parseInt(
+				xhr.target.getResponseHeader("content-length"),
+				10
+				);
+			}
+			const progress = Math.min(100, (xhr.loaded / contentLength) * 100);
+			counterEl.innerText = `${item} / 2`;
+			if (lastItem && progress >= 100) {
+				progressElement.style.width = "100%";
+				setTimeout(() => {
+				loadingContainerElement.style.opacity = 0;
+				}, 500);
+				setTimeout(() => {
+				loadingContainerElement.style.display = "none";
+				}, 1500);
+			} else {
+				progressElement.style.width = progress + "%";
+			}
 			}
 
-			.LoadingContainer {
-				width: 100%;
-				height: 100%;
-				position: absolute;
-				top: 0;
-				left: 0;
-				background: #000;
-				transition: opacity 1s ease;
-			}
+        const container = document.createElement("div");
+        document.body.appendChild(container);
 
-			.LoadingBox {
-				position: absolute;
-				top: 50%;
-				width: 100%;
-				transition: all 1s ease-out;
-			}
+        camera = new THREE.PerspectiveCamera(
+			45,
+			window.innerWidth / window.innerHeight,
+			0.25,
+			20
+        );
+        camera.position.set(0, 0, -0.2);
 
-			.LoadingMessage {
-				color: #ffffff;
-				font-family: "Diatype";
-				width: 100%;
-				text-align: center;
-				font-size: 30px;
-				margin-top: -75px;
-				margin-bottom: 2rem;
-			}
-			#Counter {
-				color: #ffffff;
-				font-size: 18px;
-			}
+        scene = new THREE.Scene();
 
-			.ProgressBar {
-				position: relative;
-				left: 40%;
-				text-align: center;
-				background: transparent;
-				width: 20%;
-				height: 50px;
-				margin-left: -5px;
-			}
+        new THREE.RGBELoader()
+			.setDataType(THREE.UnsignedByteType)
+			.setPath("textures/equirectangular/")
+			.load(
+				"glass_passage_2k.hdr",
+				function (texture) {
+				const envMap = pmremGenerator.fromEquirectangular(texture)
+					.texture;
 
-			.Bar{
-				height: 30px;
-				margin: 5px;
-				transition: width 0.1s ease;
-				animation: color 5s infinite;
-			}
+				//scene.background = envMap;
+				scene.environment = envMap;
 
-			@keyframes color {
-				0% {
-					background: #96BAE3;
-				}
-				15% {
-					background: #7153B9;
-				}
-				30% {
-					background: #0D263B;
-				}
-				45% {
-					background: #B584CB;
-				}
-				50% {
-					background: #6595B6;
-				}
-				65% {
-					background: #A5A7C2;
-				}
-				80% {
-					background: #7BAAC6;
-				}
-			}
+				texture.dispose();
+				pmremGenerator.dispose();
 
-	</style>
-
-	<body>
-		<div id="loadingContainer" class="LoadingContainer">
-			<div class="LoadingBox">
-				<div class="LoadingMessage">
-					Queering time and Space <span id="Counter"></span>
-				</div>
-				<div class="ProgressBar">
-					<div id="progress" class="Bar"></div>
-				</div>
-			</div>
-		</div>
-
-		<script type="module">
-		
-
-				let camera, scene, renderer;
-
-				init();
 				render();
 
-				function init() {
+				// model
 
-					//on loading progress bar
-					const progressElement = document.getElementById("progress")
-					const loadingContainerElement = document.getElementById(
-						"loadingContainer"
-					)
-					const counterEl = document.getElementById("Counter");
+				// use of RoughnessMipmapper is optional
+				const roughnessMipmapper = new THREE.RoughnessMipmapper(renderer);
 
-					function onEnter() {
-						console.debug("onEnter")
-						progressElement.style.width = 0
-						progressElement.style.opacity = 1
-					}
-
-					function onProgress(xhr, lastItem, item) {
-						console.debug(xhr)
-						console.debug("onProgress")
-						let contentLength;
-						if (xhr.lengthComputable) {
-							contentLength = xhr.total;
-						} else {
-							contentLength = parseInt(xhr.target.getResponseHeader('content-length'), 10);
+				const loader = new THREE.GLTFLoader().setPath("models/gltf/");
+				loader.load(
+					"reduction3.gltf",
+					function (gltf) {
+					gltf.scene.traverse(function (child) {
+						if (child.isMesh) {
+						roughnessMipmapper.generateMipmaps(child.material);
 						}
-						const progress = Math.min(100, (xhr.loaded / contentLength) * 100)
-						console.debug("progress:", progress)
-						counterEl.innerText = `${item} / 2`;
-						if (lastItem && progress >= 100) {
-							console.debug("finished!")
-							progressElement.style.width = "100%"
-							setTimeout(() => {
-								loadingContainerElement.style.opacity = 0
-							}, 500)
-							setTimeout(() => {
-								loadingContainerElement.style.display = "none"
-							}, 1500)
-						} else {
-							progressElement.style.width = progress + "%"
-						}
-					}
+					});
 
-					const container = document.createElement( 'div' );
-					document.body.appendChild( container );
+					scene.add(gltf.scene);
 
-					camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.25, 20 );
-					camera.position.set( 0,0,-0.2);
-
-					scene = new THREE.Scene();
-
-					new THREE.RGBELoader()
-						.setDataType( THREE.UnsignedByteType )
-						.setPath( 'textures/equirectangular/' )
-						.load( 'glass_passage_2k.hdr', function ( texture ) {
-
-							const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
-
-							//scene.background = envMap;
-							scene.environment = envMap;
-
-							texture.dispose();
-							pmremGenerator.dispose();
-
-							render();
-
-							// model
-
-							// use of RoughnessMipmapper is optional
-							const roughnessMipmapper = new THREE.RoughnessMipmapper( renderer );
-
-							const loader = new THREE.GLTFLoader().setPath( 'models/gltf/' );
-							loader.load( 'reduction3.gltf', function ( gltf ) {
-
-								gltf.scene.traverse( function ( child ) {
-
-									if ( child.isMesh ) {
-
-										roughnessMipmapper.generateMipmaps( child.material );
-
-									}
-
-								} );
-
-								scene.add( gltf.scene );
-
-								roughnessMipmapper.dispose();
-
-								render();
-
-							}, (xhr) => onProgress(xhr,true,2) );
-
-						}, (xhr) => onProgress(xhr,false,1) );
-
-					renderer = new THREE.WebGLRenderer( { antialias: true } );
-					renderer.setPixelRatio( window.devicePixelRatio );
-					renderer.setSize( window.innerWidth, window.innerHeight );
-					renderer.toneMapping = THREE.ACESFilmicToneMapping;
-					renderer.toneMappingExposure = 1;
-					renderer.outputEncoding = THREE.sRGBEncoding;
-					container.appendChild( renderer.domElement );
-
-					const pmremGenerator = new THREE.PMREMGenerator( renderer );
-					pmremGenerator.compileEquirectangularShader();
-
-					const controls = new THREE.OrbitControls( camera, renderer.domElement );
-					controls.addEventListener( 'change', render ); // use if there is no animation loop
-					controls.minDistance = 2;
-					controls.maxDistance = 10;
-					controls.target.set( 0, 0, - 0.2 );
-					controls.update();
-
-					window.addEventListener( 'resize', onWindowResize );
-
-				}
-
-				function onWindowResize() {
-
-					camera.aspect = window.innerWidth / window.innerHeight;
-					camera.updateProjectionMatrix();
-
-					renderer.setSize( window.innerWidth, window.innerHeight );
+					roughnessMipmapper.dispose();
 
 					render();
+					},
+                (xhr) => onProgress(xhr, true, 2)
+			);
+            },
+            (xhr) => onProgress(xhr, false, 1)
+        );
 
-				}
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        container.appendChild(renderer.domElement);
 
-				//
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        pmremGenerator.compileEquirectangularShader();
 
-				function render() {
+        window.addEventListener("resize", onWindowResize);
+	}
+		// onhover cambia el punto de vista de la cam
+		document.addEventListener("mousemove", onDocumentMouseMove);
 
-					camera.lookAt( 0, 0.5, 0 );
+		function scale(v, min, max) {
+		return v * (max - min) + min;
+		}
 
-					renderer.render( scene, camera );
+		function onDocumentMouseMove(event) {
+		mouseX = scale(event.clientX / window.innerWidth, -3, 3);
+		//console.log(mouseX)
+		mouseY = scale(event.clientY / window.innerHeight, 0.5, 2);
+		//console.log(mouseY)
+}
 
-				}
+		function onWindowResize() {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
 
+			renderer.setSize(window.innerWidth, window.innerHeight);
+
+			render();
+		}
+
+		//
+
+		function render() {
+			requestAnimationFrame( render );
+
+			camera.position.x += ( - mouseX - camera.position.x ) * .05;
+			camera.position.y += ( mouseY - camera.position.y ) * .05;
+
+			camera.lookAt( 0, 0.5, 0 );
+
+			renderer.render(scene, camera);
+		}
 		</script>
-
 	</body>
 </html>
