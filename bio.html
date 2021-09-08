@@ -267,10 +267,10 @@
 		function render() {
 			requestAnimationFrame( render );
 
-			camera.position.x += ( - mouseX - camera.position.x ) * .05;
+			camera.position.x += ( - mouseX - camera.position.x ) * .02;
 			camera.position.y += ( mouseY - camera.position.y ) * .05;
 
-			camera.lookAt( 0, 0.5, 0 );
+			camera.lookAt( 0, 0.75, 0 );
 
 			renderer.render(scene, camera);
 		}
